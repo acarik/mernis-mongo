@@ -1,56 +1,36 @@
-params = require("./params.json");
-Person = require('./Person.js');
+const params = require("./params.json");
+const Person = require('./Person.js');
 
+const mongojs = require('mongojs')
 const lineReader = require('line-reader');
-var MongoClient = require('mongodb').MongoClient;
-var logFlag = false;
-var logLength = 1000;
+const TelegramBot = require('node-telegram-bot-api');
 
-sqlFileDir = "H:\\Downloads\\mernis\\data_dump.sql";
-startStr = "COPY citizen (uid, national_identifier, first, last, mother_first, father_first, gender, birth_city, date_of_birth, id_registration_city, id_registration_district, address_city, address_district, address_neighborhood, street_address, door_or_entrance_number, misc) FROM stdin;"
+const db = mongojs(params.mongo.dbName, [params.mongo.collectionName])
+const mycollection = db.collection(params.mongo.collectionName)
+const bot = new TelegramBot(params.telegram.token, { polling: true });
 
-// Connect to the db
-MongoClient.connect(params.mongo.url, { useUnifiedTopology: true }, function (err, db) {
-    if (err) throw err;
-    var dbo = db.db(params.mongo.dbName)
-    dbo.createCollection(params.mongo.collectionName, function (err, res) {
-        if (err) throw err;
-        console.log(params.mongo.collectionName + " collection created in db " + params.mongo.dbName);
-        // adding records
+var lineCtr = 0;
+var lineCtrLogLength = 10000;
 
-        var startFlag = false;
-        var lineCtr = 0;
-        var thisPerson = new Person();
-        lineReader.eachLine(sqlFileDir, function (line) {
-
-            logFlag = (++lineCtr % logLength == 0)
-
-            if (logFlag) {
-                console.log('reading line ' + lineCtr.toString());
-                console.log(line);
+db.mycollection.remove({}, function (err) {
+    // before adding all, remove all
+    lineReader.eachLine(params.sqlFileDir, function (line, last) {
+        mycollection.save(new Person(line), function (err, saved) {
+            if (++lineCtr % lineCtrLogLength == 0) {
+                console.log((lineCtr).toString() + " of 49611709 saved");
             }
-            if (startFlag) {
-                thisPerson.set(line);
-                console.log(thisPerson);
-                var myobj = { name: "Company Inc", address: "Highway 37" };
-                dbo.collection(params.mongo.collectionName).insertOne(myobj, function (err, res) {
-                    if (err) throw err;
-                    if (logFlag) {
-                        console.log(logLength.toString() + " documents inserted")
-                    }
-                })
+            if (last) {
+                console.log("reading finished");
             }
-
-            if (line.includes(startStr)) {
-                //return false; // stop reading
-                startFlag = true;
-            }
-
-            if ((startFlag) && (line.includes('\.'))) {
-                // demek ki bitmis
-                return false;
-            }
-        });
-        db.close();
+        })
     });
 });
+
+// bot functions
+bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+
+    // send a message to the chat acknowledging receipt of their message
+    bot.sendMessage(chatId, 'Received your message');
+});
+

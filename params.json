@@ -1,7 +1,12 @@
 {
     "mongo": {
-        "url": "mongodb://localhost:27017/",
-        "dbName": "mongoDb",
+        "url": "mongodb://localhost:27017",
+        "dbName": "mernis",
         "collectionName": "vatandaslar"
-    }
+    },
+    "sqlFileDir" : "H:\\Downloads\\mernis\\data_dump.sql",
+    "telegram" : {
+        "token" : "1043963147:AAERE493tTDVidhSa_jqUVmI3jlbFC4jqOc"
+    },
+    "totalNumberOfRecords" : 49611709
 }
